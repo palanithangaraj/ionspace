@@ -1,0 +1,7 @@
+name: ionspace
+description: Production-ready Kubernetes platform
+runtime: go
+config:
+  pulumi:tags:
+    value:
+      pulumi:template: aws-go
