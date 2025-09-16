@@ -1,23 +1,24 @@
- # AWS S3 Bucket (Go) Pulumi Template
+# Ionspace Platfom
+## AWS EKS Platform 
 
- This Pulumi template bootstraps a minimal Go project that provisions an AWS S3 bucket.
+ This Pulumi bootstraps a minimal Go project that provisions an AWS EKS Platform.
  It uses the Pulumi AWS provider to create the bucket and exports its name as an output.
 
  ## When to Use This Template
 
  Use this template when you want to:
- - Get started quickly with Pulumi and Go for AWS workloads
- - Provision a simple S3 bucket with minimal configuration
+ - Get started quickly with Pulumi and Go for AWS Platforms
+ - Provision a simple EKS with minimal configuration
  - Learn how Pulumi programs are structured in Go
 
  ## Providers & Resources
 
 - **AWS Provider** (`github.com/pulumi/pulumi-aws/sdk/v6`)
-- **Resource Created**: `aws:s3/bucket:Bucket` via `s3.NewBucketV2`
+- **Resource Created**: `https://github.com/palanithangaraj/ionspace`
 
  ## Outputs
 
-- `bucketName`: The unique name/ID of the created S3 bucket
+- `EKS Platform`: The unique name/ID of the created resources
 
  ## Prerequisites
 
@@ -26,11 +27,10 @@
 - Pulumi CLI installed and authenticated
 
  ## Getting Started
+### Uses Strategy Pattern
 
- 1. Create a new stack/project from this template:
-    ```bash
-    pulumi new aws-go
-    ```
+ 1. Create a new creates a platform using this POC:
+   - Modify the pulumi.dev.yaml and AWS config and create the EKS platform on the fly. 
 
  2. Follow the interactive prompts to set:
     - **Project name** (used in `Pulumi.yaml`)
@@ -73,7 +73,7 @@ pulumi config set aws:region us-west-2
 
  ## Next Steps
 
- - Customize the bucket by passing options to `s3.NewBucketV2`, such as versioning, encryption, tags, etc.
+ - Customize the platform, such as versioning, encryption, tags, etc.
  - Add additional AWS resources (e.g., IAM roles, DynamoDB tables) by importing and using other Pulumi AWS SDK packages.
  - Explore Pulumi’s Go SDK patterns, such as component resources and functions.
  - Integrate infrastructure as code into your CI/CD pipelines.
