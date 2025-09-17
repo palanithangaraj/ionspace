@@ -1,11 +1,11 @@
 config:
   aws:region: us-west-2
-  aws:profile: dev
+  aws:profile: stg
   tags:version: "0.1.0"
   tags:author: palani
   tags:team: ispace
-  tags:feature: ionspaceDevVPC
-  vpc:name: isDevVPC
+  tags:feature: ionspaceStgVPC
+  vpc:name: isStgVPC
   vpc:cidr-block: "172.32.0.0/16"
   vpc:subnet-zones: "us-west-2a,us-west-2c"
   vpc:subnet-ips: "172.32.32.0/20,172.32.80.0/20"
