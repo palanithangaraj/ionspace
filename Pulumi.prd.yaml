@@ -1,6 +1,6 @@
 config:
   aws:region: us-west-2
-  aws:profile: prod
+  aws:profile: prd
   tags:version: "0.1.0"
   tags:author: palani
   tags:team: ispace

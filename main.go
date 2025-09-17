@@ -32,14 +32,7 @@ func main() {
 
 		vpcName := getEnv(ctx, "vpc:name", "unknown")
 
-		vpc, err := ec2.NewVpc(ctx, vpcName, vpcArgs)
-		if err != nil {
-			fmt.Println(err.Error())
-			return err
-		}
-
-		// Export IDs of the created resources to the Pulumi stack
-		ctx.Export("VPC-ID", vpc.ID())
+        vpc, _ := CreateVpc(ctx, vpcName, vpcArgs)
 
 		// Create the required number of subnets
         subnets := pulumi.Map{
