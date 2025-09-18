@@ -12,7 +12,6 @@ import (
 
 func main() {
 	pulumi.Run(func(ctx *pulumi.Context) error {
-        getEnv(ctx, "vpc:cidr-block", "unknown")
 		// Prepare the tags that are used for each individual resource so they can be found
 		// using the Resource Groups service in the AWS Console
 		tags := pulumi.Map{
@@ -123,6 +122,57 @@ func main() {
         }
 
         ctx.Export("CLUSTER-ID", cluster.ID())
+
+        // Create an IAM Role for the Node Group
+    		nodeGroupRole, err := iam.NewRole(ctx, "nodeGroupRole", &iam.RoleArgs{
+    			AssumeRolePolicy: pulumi.String(`{
+    				"Version": "2012-10-17",
+    				"Statement": [{
+    					"Effect": "Allow",
+    					"Principal": {"Service": "ec2.amazonaws.com"},
+    					"Action": "sts:AssumeRole"
+    				}]
+    			}`),
+    		})
+    		if err != nil {
+    			return err
+    		}
+
+    		// Attach policies to the Node Group Role
+    		_, err = iam.NewRolePolicyAttachment(ctx, "nodeGroupRolePolicyAttachment1", &iam.RolePolicyAttachmentArgs{
+    			Role:       nodeGroupRole.Name,
+    			PolicyArn:  pulumi.String("arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"),
+    		})
+    		if err != nil {
+    			return err
+    		}
+    		_, err = iam.NewRolePolicyAttachment(ctx, "nodeGroupRolePolicyAttachment2", &iam.RolePolicyAttachmentArgs{
+    			Role:       nodeGroupRole.Name,
+    			PolicyArn:  pulumi.String("arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"),
+    		})
+    		if err != nil {
+    			return err
+    		}
+
+    		// Create a new Node Group and associate it with the EKS cluster
+
+        _, err = eks.NewNodeGroup(ctx, "ionspaceNodeGroup", &eks.NodeGroupArgs{
+    			ClusterName:       cluster.Name,
+    			//InstanceTypes:  instanceTypes.(pulumi.StringArray), // Choose your desired instance type
+                ScalingConfig: &eks.NodeGroupScalingConfigArgs{
+				// Sets the initial desired number of nodes to 2.
+				DesiredSize: pulumi.Int(2),
+				// Sets the minimum number of nodes to 1.
+				MinSize:     pulumi.Int(1),
+				// Sets the maximum number of nodes to 5.
+				MaxSize:     pulumi.Int(5),
+			},
+    			NodeRoleArn:   nodeGroupRole.Arn,
+    			SubnetIds:     subnets["subnet_ids"].(pulumi.StringArray), // Use subnets from your EKS cluster's VPC
+    		})
+    		if err != nil {
+    			return err
+    		}
 
 		return nil
 	})
