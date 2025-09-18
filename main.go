@@ -33,6 +33,38 @@ func main() {
 
         vpc, _ := CreateVpc(ctx, vpcName, vpcArgs)
 
+        // Create an Internet Gateway
+    	igw, err := ec2.NewInternetGateway(ctx, "ionspaceInternetGateway", &ec2.InternetGatewayArgs{
+    		VpcId: vpc.ID(), // Replace 'vpc.ID()' with the actual ID of your VPC
+//     		Tags: pulumi.StringMap{
+//     			"Name": pulumi.String("ionspace-gateway"),
+//     		},
+    	})
+    	if err != nil {
+    		return err
+    	}
+
+    	// Export the Internet Gateway ID
+    	ctx.Export("internetGatewayId", igw.ID())
+
+    	routeTable, err := ec2.NewRouteTable(ctx, "myRouteTable", &ec2.RouteTableArgs{
+         VpcId: vpc.ID(),
+         Routes: ec2.RouteTableRouteArray{
+             &ec2.RouteTableRouteArgs{
+                 CidrBlock: pulumi.String("0.0.0.0/0"), // Default route for all outbound traffic
+                 GatewayId: igw.ID(),                    // Route to the Internet Gateway
+             },
+         },
+//          Tags: pulumi.StringMap{
+//              "Name": pulumi.String("my-public-route-table"),
+//          },
+        })
+        if err != nil {
+             return err
+        }
+
+        ctx.Export("routeTableId", routeTable.ID())
+
 		// Create the required number of subnets
         subnets := pulumi.Map{
             "subnet_ids": pulumi.StringArray{},
@@ -153,6 +185,14 @@ func main() {
     		if err != nil {
     			return err
     		}
+    		_, err = iam.NewRolePolicyAttachment(ctx, "nodeGroupRolePolicyAttachment3", &iam.RolePolicyAttachmentArgs{
+    			Role:       nodeGroupRole.Name,
+    			PolicyArn:  pulumi.String("arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"),
+    		})
+    		if err != nil {
+    			return err
+    		}
+
 
     		// Create a new Node Group and associate it with the EKS cluster
 
@@ -167,6 +207,9 @@ func main() {
 				// Sets the maximum number of nodes to 5.
 				MaxSize:     pulumi.Int(5),
 			},
+// 			InstanceTypes: pulumi.StringArrayInput{
+//                 				pulumi.StringPtr("t3.medium"), // Adjust instance type
+//                 			},
     			NodeRoleArn:   nodeGroupRole.Arn,
     			SubnetIds:     subnets["subnet_ids"].(pulumi.StringArray), // Use subnets from your EKS cluster's VPC
     		})
