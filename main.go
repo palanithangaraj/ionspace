@@ -6,7 +6,6 @@ import (
 
 	"github.com/pulumi/pulumi-aws/sdk/go/aws/ec2"
     "github.com/pulumi/pulumi/sdk/go/pulumi"
-    "github.com/pulumi/pulumi-aws/sdk/go/aws/iam"
     "github.com/pulumi/pulumi-aws/sdk/go/aws/eks"
 )
 
@@ -30,7 +29,6 @@ func main() {
 		}
 
 		vpcName := getEnv(ctx, "vpc:name", "unknown")
-
         vpc, _ := CreateVpc(ctx, vpcName, vpcArgs)
 
         // Create an Internet Gateway
@@ -91,44 +89,11 @@ func main() {
         }
 
         ctx.Export("SUBNET-IDS", subnets["subnet_ids"])
-
         // Define the EKS Cluster IAM Role
-        eksRole, err := iam.NewRole(ctx, "eksClusterRole", &iam.RoleArgs{
-            AssumeRolePolicy: pulumi.String(fmt.Sprintf(`{
-                 "Version": "2012-10-17",
-                 "Statement": [
-                     {
-                         "Effect": "Allow",
-                         "Principal": {
-                              "Service": "eks.amazonaws.com"
-                         },
-                         "Action": "sts:AssumeRole"
-                     }
-                 ]
-            }`)),
-        })
-        if err != nil {
-            return err
-        }
-
-        // Attach the AmazonEKSClusterPolicy to the role
-        _, err = iam.NewRolePolicyAttachment(ctx, "eksClusterPolicyAttachment", &iam.RolePolicyAttachmentArgs{
-            Role:      eksRole.Name,
-            PolicyArn: pulumi.String("arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"),
-        })
-        if err != nil {
-            return err
-        }
-
+        eksRole, err := CreateIamRole(ctx, "eksClusterRole")
+        AttachPolicyToIamRole(ctx, eksRole.Name, "eksClusterPolicyAttachment", "AmazonEKSClusterPolicy")
         // Optionally, attach the AmazonEKSVPCResourceController policy if needed for specific functionalities
-        _, err = iam.NewRolePolicyAttachment(ctx, "eksVpcResourceControllerPolicyAttachment", &iam.RolePolicyAttachmentArgs{
-            Role:      eksRole.Name,
-            PolicyArn: pulumi.String("arn:aws:iam::aws:policy/AmazonEKSVPCResourceController"),
-        })
-        if err != nil {
-            return err
-        }
-
+        AttachPolicyToIamRole(ctx, eksRole.Name, "eksVpcResourceControllerPolicyAttachment", "AmazonEKSVPCResourceController")
         // Export the role ARN
         ctx.Export("eksClusterRoleArn", eksRole.Arn)
 
@@ -156,47 +121,15 @@ func main() {
         ctx.Export("CLUSTER-ID", cluster.ID())
 
         // Create an IAM Role for the Node Group
-    		nodeGroupRole, err := iam.NewRole(ctx, "nodeGroupRole", &iam.RoleArgs{
-    			AssumeRolePolicy: pulumi.String(`{
-    				"Version": "2012-10-17",
-    				"Statement": [{
-    					"Effect": "Allow",
-    					"Principal": {"Service": "ec2.amazonaws.com"},
-    					"Action": "sts:AssumeRole"
-    				}]
-    			}`),
-    		})
-    		if err != nil {
-    			return err
-    		}
+        nodeGroupRole, err := CreateIamRole(ctx, "nodeGroupRole")
 
     		// Attach policies to the Node Group Role
-    		_, err = iam.NewRolePolicyAttachment(ctx, "nodeGroupRolePolicyAttachment1", &iam.RolePolicyAttachmentArgs{
-    			Role:       nodeGroupRole.Name,
-    			PolicyArn:  pulumi.String("arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"),
-    		})
-    		if err != nil {
-    			return err
-    		}
-    		_, err = iam.NewRolePolicyAttachment(ctx, "nodeGroupRolePolicyAttachment2", &iam.RolePolicyAttachmentArgs{
-    			Role:       nodeGroupRole.Name,
-    			PolicyArn:  pulumi.String("arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"),
-    		})
-    		if err != nil {
-    			return err
-    		}
-    		_, err = iam.NewRolePolicyAttachment(ctx, "nodeGroupRolePolicyAttachment3", &iam.RolePolicyAttachmentArgs{
-    			Role:       nodeGroupRole.Name,
-    			PolicyArn:  pulumi.String("arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"),
-    		})
-    		if err != nil {
-    			return err
-    		}
-
+            AttachPolicyToIamRole(ctx, nodeGroupRole.Name, "nodeGroupRolePolicyAttachment1", "AmazonEKSWorkerNodePolicy")
+            AttachPolicyToIamRole(ctx, nodeGroupRole.Name, "nodeGroupRolePolicyAttachment2", "AmazonEKS_CNI_Policy")
+            AttachPolicyToIamRole(ctx, nodeGroupRole.Name, "nodeGroupRolePolicyAttachment3", "AmazonEC2ContainerRegistryReadOnly")
 
     		// Create a new Node Group and associate it with the EKS cluster
-
-        _, err = eks.NewNodeGroup(ctx, "ionspaceNodeGroup", &eks.NodeGroupArgs{
+            _, err = eks.NewNodeGroup(ctx, "ionspaceNodeGroup", &eks.NodeGroupArgs{
     			ClusterName:       cluster.Name,
     			//InstanceTypes:  instanceTypes.(pulumi.StringArray), // Choose your desired instance type
                 ScalingConfig: &eks.NodeGroupScalingConfigArgs{
