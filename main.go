@@ -57,7 +57,7 @@ func main() {
 
         ctx.Export("SUBNET-IDS", subnets["subnet_ids"])
         // Define the EKS Cluster IAM Role
-        eksRole, err := CreateIamRole(ctx, "eksClusterRole")
+        eksRole, err := CreateIamEksRole(ctx, "eksClusterRole")
         AttachPolicyToIamRole(ctx, eksRole.Name, "eksClusterPolicyAttachment", "AmazonEKSClusterPolicy")
         // Optionally, attach the AmazonEKSVPCResourceController policy if needed for specific functionalities
         AttachPolicyToIamRole(ctx, eksRole.Name, "eksVpcResourceControllerPolicyAttachment", "AmazonEKSVPCResourceController")
@@ -85,7 +85,7 @@ func main() {
         }
 
         // Create an IAM Role for the Node Group
-        nodeGroupRole, err := CreateIamRole(ctx, "nodeGroupRole")
+        nodeGroupRole, err := CreateIamEc2Role(ctx, "nodeGroupRole")
 
         // Attach policies to the Node Group Role
         AttachPolicyToIamRole(ctx, nodeGroupRole.Name, "nodeGroupRolePolicyAttachment1", "AmazonEKSWorkerNodePolicy")
