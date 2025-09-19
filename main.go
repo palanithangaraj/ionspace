@@ -32,36 +32,8 @@ func main() {
         vpc, _ := CreateVpc(ctx, vpcName, vpcArgs)
 
         // Create an Internet Gateway
-    	igw, err := ec2.NewInternetGateway(ctx, "ionspaceInternetGateway", &ec2.InternetGatewayArgs{
-    		VpcId: vpc.ID(), // Replace 'vpc.ID()' with the actual ID of your VPC
-//     		Tags: pulumi.StringMap{
-//     			"Name": pulumi.String("ionspace-gateway"),
-//     		},
-    	})
-    	if err != nil {
-    		return err
-    	}
-
-    	// Export the Internet Gateway ID
-    	ctx.Export("internetGatewayId", igw.ID())
-
-    	routeTable, err := ec2.NewRouteTable(ctx, "myRouteTable", &ec2.RouteTableArgs{
-         VpcId: vpc.ID(),
-         Routes: ec2.RouteTableRouteArray{
-             &ec2.RouteTableRouteArgs{
-                 CidrBlock: pulumi.String("0.0.0.0/0"), // Default route for all outbound traffic
-                 GatewayId: igw.ID(),                    // Route to the Internet Gateway
-             },
-         },
-//          Tags: pulumi.StringMap{
-//              "Name": pulumi.String("my-public-route-table"),
-//          },
-        })
-        if err != nil {
-             return err
-        }
-
-        ctx.Export("routeTableId", routeTable.ID())
+    	igw, _ := CreateInternetGateway(ctx, "ionspaceInternetGateway", vpc.ID())
+    	CreateRouteTable(ctx, "ionspaceRouteTable", vpc.ID(), igw.ID())
 
 		// Create the required number of subnets
         subnets := pulumi.Map{
@@ -79,12 +51,7 @@ func main() {
                  AvailabilityZone: pulumi.StringPtr(availabilityZone),
              }
 
-             subnet, err := ec2.NewSubnet(ctx, fmt.Sprintf("%s-subnet-%d", vpcName, idx), subnetArgs)
-             if err != nil {
-                 fmt.Println(err.Error())
-                 return err
-             }
-
+             subnet, _ := CreateSubnet(ctx, fmt.Sprintf("%s-subnet-%d", vpcName, idx), subnetArgs)
              subnets["subnet_ids"] = append(subnets["subnet_ids"].(pulumi.StringArray), subnet.ID())
         }
 
@@ -112,24 +79,20 @@ func main() {
              EnabledClusterLogTypes: toPulumiStringArray(enabledClusterLogTypes),
         }
 
-        cluster, err := eks.NewCluster(ctx, clusterName, clusterArgs)
+        cluster, _ := CreateCluster(ctx, clusterName, clusterArgs)
         if err != nil {
-             fmt.Println(err.Error())
              return err
         }
-
-        ctx.Export("CLUSTER-ID", cluster.ID())
 
         // Create an IAM Role for the Node Group
         nodeGroupRole, err := CreateIamRole(ctx, "nodeGroupRole")
 
-    		// Attach policies to the Node Group Role
-            AttachPolicyToIamRole(ctx, nodeGroupRole.Name, "nodeGroupRolePolicyAttachment1", "AmazonEKSWorkerNodePolicy")
-            AttachPolicyToIamRole(ctx, nodeGroupRole.Name, "nodeGroupRolePolicyAttachment2", "AmazonEKS_CNI_Policy")
-            AttachPolicyToIamRole(ctx, nodeGroupRole.Name, "nodeGroupRolePolicyAttachment3", "AmazonEC2ContainerRegistryReadOnly")
+        // Attach policies to the Node Group Role
+        AttachPolicyToIamRole(ctx, nodeGroupRole.Name, "nodeGroupRolePolicyAttachment1", "AmazonEKSWorkerNodePolicy")
+        AttachPolicyToIamRole(ctx, nodeGroupRole.Name, "nodeGroupRolePolicyAttachment2", "AmazonEKS_CNI_Policy")
+        AttachPolicyToIamRole(ctx, nodeGroupRole.Name, "nodeGroupRolePolicyAttachment3", "AmazonEC2ContainerRegistryReadOnly")
 
-    		// Create a new Node Group and associate it with the EKS cluster
-            _, err = eks.NewNodeGroup(ctx, "ionspaceNodeGroup", &eks.NodeGroupArgs{
+        nodeGroupArgs := eks.NodeGroupArgs{
     			ClusterName:       cluster.Name,
     			//InstanceTypes:  instanceTypes.(pulumi.StringArray), // Choose your desired instance type
                 ScalingConfig: &eks.NodeGroupScalingConfigArgs{
@@ -141,15 +104,15 @@ func main() {
 				MaxSize:     pulumi.Int(5),
 			},
 // 			InstanceTypes: pulumi.StringArrayInput{
-//                 				pulumi.StringPtr("t3.medium"), // Adjust instance type
+//            				pulumi.StringPtr("t3.medium"), // Adjust instance type
 //                 			},
-    			NodeRoleArn:   nodeGroupRole.Arn,
-    			SubnetIds:     subnets["subnet_ids"].(pulumi.StringArray), // Use subnets from your EKS cluster's VPC
-    		})
-    		if err != nil {
-    			return err
-    		}
+            NodeRoleArn:   nodeGroupRole.Arn,
+            SubnetIds:     subnets["subnet_ids"].(pulumi.StringArray), // Use subnets from your EKS cluster's VPC
+        }
 
-		return nil
+        // Create a new Node Group and associate it with the EKS cluster
+        CreateNodeGroup(ctx, "ionspaceNodeGroup", &nodeGroupArgs)
+
+        return nil
 	})
 }
