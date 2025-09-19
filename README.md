@@ -42,11 +42,19 @@
     pulumi preview
     ```
 
- 4. Deploy your stack:
-    ```bash
-    pulumi up
-    ```
-
+ 4. Deploy your stack as per Environment:
+    - **Dev**
+        ```bash
+        pulumi up --stack dev 
+        ```
+    - **Staging**
+      ```bash
+      pulumi up --stack stg
+      ```
+    - **Production**
+      ```bash
+      pulumi up --stack prd
+      ```
  5. Verify the output:
     ```bash
     pulumi stack output bucketName
