@@ -59,7 +59,22 @@
     ```bash
     pulumi stack output bucketName
     ```
+6. Some useful commands - includes updating aws credentials/profiles:
+    ```bash
+    brew install kubernetes-cli@1.32
 
+    kubectl version --client
+
+    kubectl get nodes
+
+    kubectl get namespaces
+
+    aws eks update-kubeconfig --name ionspacePrdCluster --region us-west-2
+
+    pulumi up --stack prd
+
+    pulumi destroy --stack prd
+        ```
  ## Project Layout
 
     .
